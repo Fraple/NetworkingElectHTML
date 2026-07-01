@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An Exposure to Networking</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2330;
+    --border: #30363d;
+    --accent: #f0a500;
+    --accent2: #00b4d8;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --danger: #f85149;
+    --green: #3fb950;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+    --condensed: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP BAR */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 16px;
+  }
+  #topbar .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  #progress-track {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    max-width: 600px;
+  }
+  .prog-dot {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .prog-dot.active { background: var(--accent); }
+  .prog-dot.done { background: var(--accent2); }
+  #slide-counter {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* MAIN STAGE */
+  #stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 48px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* SLIDE LAYOUTS */
+  .slide-inner {
+    width: 100%;
+    max-width: 960px;
+  }
+
+  .slide-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1.slide-title {
+    font-family: var(--condensed);
+    font-size: clamp(42px, 7vw, 80px);
+    font-weight: 900;
+    line-height: 0.95;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  h1.slide-title em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  h2.slide-heading {
+    font-family: var(--condensed);
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+  h2.slide-heading .hl { color: var(--accent); }
+
+  .slide-body {
+    font-size: 16px;
+    line-height: 1.65;
+    color: #c9d1d9;
+  }
+  .slide-body p { margin-bottom: 12px; }
+  .slide-body strong { color: var(--text); font-weight: 700; }
+
+  /* GRID LAYOUTS */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  .card.blue::before { background: var(--accent2); }
+  .card.green::before { background: var(--green); }
+  .card.red::before { background: var(--danger); }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .card h3 {
+    font-family: var(--condensed);
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .card.blue h3 { color: var(--accent2); }
+  .card.green h3 { color: var(--green); }
+  .card.red h3 { color: var(--danger); }
+  .card.yellow h3 { color: var(--accent); }
+
+  .card p, .card li {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #c9d1d9;
+  }
+  .card ul { padding-left: 16px; }
+  .card li { margin-bottom: 4px; }
+
+  /* BULLET LIST */
+  .bullet-list {
+    list-style: none;
+    padding: 0;
+  }
+  .bullet-list li {
+    padding: 8px 0 8px 24px;
+    position: relative;
+    font-size: 15px;
+    color: #c9d1d9;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* CALLOUT BOX */
+  .callout {
+    background: rgba(240,165,0,0.08);
+    border: 1px solid rgba(240,165,0,0.3);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: #c9d1d9;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+  .callout.blue {
+    background: rgba(0,180,216,0.08);
+    border-color: rgba(0,180,216,0.3);
+    border-left-color: var(--accent2);
+  }
+  .callout.red {
+    background: rgba(248,81,73,0.08);
+    border-color: rgba(248,81,73,0.3);
+    border-left-color: var(--danger);
+  }
+  .callout strong { color: var(--accent); }
+  .callout.blue strong { color: var(--accent2); }
+  .callout.red strong { color: var(--danger); }
+
+  /* TAG BADGE */
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: rgba(240,165,0,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(240,165,0,0.3);
+    margin: 2px;
+  }
+  .badge.blue { background: rgba(0,180,216,0.15); color: var(--accent2); border-color: rgba(0,180,216,0.3); }
+  .badge.green { background: rgba(63,185,80,0.15); color: var(--green); border-color: rgba(63,185,80,0.3); }
+
+  /* TITLE SLIDE */
+  #slide-0 {
+    background: 
+      radial-gradient(ellipse at 80% 20%, rgba(240,165,0,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, rgba(0,180,216,0.06) 0%, transparent 50%),
+      var(--bg);
+  }
+  #slide-0 .title-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  #slide-0 h1 {
+    font-family: var(--condensed);
+    font-size: clamp(52px, 9vw, 100px);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.92;
+    margin-bottom: 24px;
+  }
+  #slide-0 h1 .line2 { color: var(--accent); display: block; }
+  #slide-0 .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 500px;
+    line-height: 1.5;
+    margin-bottom: 32px;
+  }
+  #slide-0 .topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* STEP INDICATOR */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .steps li p { font-size: 14px; line-height: 1.55; color: #c9d1d9; }
+  .steps li strong { color: var(--text); }
+
+  /* FREQ BANDS VIZ */
+  .freq-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .freq-label {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .freq-track {
+    flex: 1;
+    height: 20px;
+    background: var(--panel2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .freq-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: absolute;
+    left: 0;
+    transition: width 0.6s ease;
+  }
+  .freq-note {
+    font-size: 12px;
+    color: var(--muted);
+    width: 110px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  /* ANALOGY BLOCK */
+  .analogy {
+    display: flex;
+    gap: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  .analogy-col {
+    flex: 1;
+    padding: 16px;
+  }
+  .analogy-col:first-child {
+    border-right: 1px solid var(--border);
+  }
+  .analogy-col h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .analogy-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: #c9d1d9;
+  }
+  .analogy-row .icon { font-size: 16px; }
+  .analogy-row .key { color: var(--accent); font-weight: 600; margin-right: 2px; }
+
+  /* NAV */
+  #nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-family: var(--condensed);
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.3; pointer-events: none; }
+  .nav-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .nav-btn.primary:hover { background: #ffba2e; }
+  #slide-title-display {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  /* SPECIAL: NZ flag tint */
+  #slide-nz { background: radial-gradient(ellipse at 30% 50%, rgba(0,50,120,0.15) 0%, transparent 60%), var(--bg); }
+
+  /* GENERIC DIVIDER / TITLE-SLIDE STYLING (reusable across slides) */
+  .title-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .divider-title {
+    font-family: var(--condensed);
+    font-size: clamp(52px, 9vw, 100px);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.92;
+    margin-bottom: 24px;
+  }
+  .divider-title .line2 { color: var(--accent); display: block; }
+  .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.5;
+    margin-bottom: 32px;
+  }
+  .topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* NETWORK DIAGRAM */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .diagram-node {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .diagram-node.accent { border-color: var(--accent); color: var(--accent); }
+  .diagram-node.blue { border-color: var(--accent2); color: var(--accent2); }
+  .diagram-node.dim { color: var(--muted); border-style: dashed; }
+  .diagram-arrow {
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  .diagram-branch {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+  }
+  .diagram-branch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Scrollable if needed */
+  .slide { overflow-y: auto; }
+
+  /* Responsive tweaks */
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .slide { padding: 20px; }
+    .analogy { flex-direction: column; }
+    .analogy-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo">⚡ NETWORKING FOR BEGINNERS</div>
+  <div id="progress-track"></div>
+  <div id="slide-counter">1 / 11</div>
+</div>
+
+<!-- SLIDES -->
+<div id="stage">
+
+  <!-- SLIDE 0: TITLE -->
+  <div class="slide active" id="slide-0">
+    <div class="slide-inner">
+      <div class="title-eyebrow">Training Module 01</div>
+      <h1>
+        Basic Networking
+        <span class="line2">An Introduction</span>
+      </h1>
+      <p class="subtitle">Everything you need to know to confidently handle network installations — without the IT jargon.</p>
+      <div class="topics">
+        <span class="badge">Ethernet &amp; Cabling</span>
+        <span class="badge blue">IP Addresses</span>
+        <span class="badge">Network Devices</span>
+        <span class="badge blue">WiFi Bands</span>
+        <span class="badge">Troubleshooting</span>
+        <span class="badge blue">NZ Fibre</span>
+        <span class="badge">Point to Point</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 1: ETHERNET CABLES -->
+  <div class="slide" id="slide-1">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 01</div>
+      <h2 class="slide-heading">Ethernet <span class="hl">Cables</span></h2>
+      <div class="grid-2">
+        <div>
+          <ul class="bullet-list">
+            <li>Connect devices to a network using <strong>copper wire</strong></li>
+            <li>Use <strong>RJ45 connectors</strong> — the plastic clip on each end</li>
+            <li>Can carry both <strong>data and power</strong> (PoE)</li>
+            <li>Ethernet uses <strong>4 twisted pairs</strong> — 8 wires total</li>
+            <li>A <strong>link light ≠ a good cable</strong>. One bad wire can drop speeds or cause intermittent faults</li>
+          </ul>
+          <div class="callout red" style="margin-top:16px;">
+            <strong>⚠ Most Common Fault:</strong> Bad cable terminations. Even pre-made patch leads can be faulty. One bad wire out of 8 can drop speed from 1 Gbps to 100 Mbps — and it will still show a link light.
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:12px;">
+            <div class="card-label">CAT Rating — Speed &amp; Distance</div>
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.7;">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--muted);">CAT5e</strong></span><span>1 Gbps @ 100m</span></div>
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">CAT6</strong></span><span>1 Gbps @ 100m &nbsp;|&nbsp; <span style="color:var(--accent);">10 Gbps @ 55m</span></span></div>
+              <div style="display:flex; justify-content:space-between; padding:6px 0;"><span><strong style="color:var(--accent2);">Fibre</strong></span><span style="color:var(--accent2);">Long distance — 100m+</span></div>
+            </div>
+          </div>
+          <div class="callout blue">
+            <strong>Fibre Note:</strong> Use fibre when distances exceed 100m. Fibre has a minimum bend radius — don't kink it. Formulas for this are available online.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: TROUBLESHOOTING -->
+  <div class="slide" id="slide-2">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 02</div>
+      <h2 class="slide-heading">Trouble<span class="hl">shooting</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="callout" style="margin-bottom:16px;">
+            <strong>Golden Rule:</strong> Always start at the physical layer. Check connections, rule out hardware, reduce the number of possible problem points.
+          </div>
+          <ol class="steps">
+            <li><p><strong>Simplify the setup.</strong> Disconnect from building cabling. Use a PoE injector directly into the router — bypass as much hardware as possible.</p></li>
+            <li><p><strong>Check every cable.</strong> Swap patch leads. Test with a cable tester if available. Remember — a link light doesn't mean a good cable.</p></li>
+            <li><p><strong>Check power.</strong> Confirm PoE is actually delivering power. Try a different port or a direct PoE injector.</p></li>
+            <li><p><strong>Check IP / subnet.</strong> Is your laptop on the same network as the device? (More on this next.)</p></li>
+          </ol>
+        </div>
+        <div>
+          <div class="card red">
+            <div class="card-label">Example Scenario</div>
+            <h3>Access Point Not Working</h3>
+            <p style="margin-bottom:10px;">Your AP is: plugged into a data outlet → connected to a PoE switch → linked to a router.</p>
+            <p style="color:var(--accent); font-weight:600; margin-bottom:8px;">➡ Simplify it:</p>
+            <ul style="padding-left:16px; font-size:13px; color:#c9d1d9; line-height:1.8;">
+              <li>Disconnect from building cabling</li>
+              <li>Plug directly into router with a PoE injector</li>
+              <li>Does it work now? → The problem is in the building cabling or switch</li>
+              <li>Still broken? → Problem is the AP itself or the router</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: IP ADDRESSES -->
+  <div class="slide" id="slide-3">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 03</div>
+      <h2 class="slide-heading">IP <span class="hl">Addresses</span> &amp; Subnets</h2>
+      <div class="grid-2">
+        <div>
+          <p class="slide-body" style="margin-bottom:16px;">An IP address is simply a device's unique address on a network — just like a house needs a street address so mail knows where to go.</p>
+          <div class="analogy">
+            <div class="analogy-col">
+              <h4>Networking</h4>
+              <div class="analogy-row"><span class="icon">🌐</span><span><span class="key">Network</span> = The City</span></div>
+              <div class="analogy-row"><span class="icon">🔀</span><span><span class="key">Subnet</span> = The Street</span></div>
+              <div class="analogy-row"><span class="icon">💻</span><span><span class="key">Device</span> = The House</span></div>
+              <div class="analogy-row"><span class="icon">🔢</span><span><span class="key">IP Address</span> = House Number</span></div>
+              <div class="analogy-row"><span class="icon">🚦</span><span><span class="key">Router</span> = Intersection</span></div>
+            </div>
+            <div class="analogy-col">
+              <h4>Electrical</h4>
+              <div class="analogy-row"><span class="icon">🏗️</span><span><span class="key">Network</span> = Switchboard</span></div>
+              <div class="analogy-row"><span class="icon">⚡</span><span><span class="key">Subnet</span> = Circuit</span></div>
+              <div class="analogy-row"><span class="icon">🔌</span><span><span class="key">Device</span> = Outlet / Load</span></div>
+              <div class="analogy-row"><span class="icon">🔗</span><span><span class="key">Router</span> = Controlled link between circuits</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card red" style="margin-bottom:12px;">
+            <div class="card-label">⚠ Common Real-World Issue</div>
+            <h3>Can't Find the Camera?</h3>
+            <p style="margin-bottom:8px;">Installer connects laptop to WiFi. Camera is on a different VLAN or subnet.</p>
+            <p><strong style="color:var(--danger);">Result:</strong> Camera can't be discovered — not because anything is broken, but because they're on different subnets. You need the router to bridge them, or you need to be on the same subnet.</p>
+          </div>
+          <div class="callout blue">
+            <strong>Key rule:</strong> Devices on the same subnet see each other directly. Devices on different subnets need a router to communicate.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: ROUTERS -->
+  <div class="slide" id="slide-4">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 04 — Network Devices</div>
+      <h2 class="slide-heading">The <span class="hl">Router</span></h2>
+      <div class="grid-2">
+        <div>
+          <ul class="bullet-list">
+            <li>The <strong>front door</strong> of your network — controls what comes in from the outside world</li>
+            <li>Handles <strong>security and firewall</strong> rules</li>
+            <li>Connects directly to the <strong>fibre box (ONT)</strong> on the wall</li>
+            <li><strong>Assigns IP addresses</strong> to all devices on the network (via DHCP)</li>
+            <li>Plug the ONT into the <strong>WAN port</strong>, everything else into any other port</li>
+          </ul>
+          <div class="callout" style="margin-top:16px;">
+            <strong>Think of it as:</strong> The main switchboard of the network. All traffic in and out passes through the router.
+          </div>
+        </div>
+        <div>
+          <div class="card yellow">
+            <div class="card-label">NZ Fibre Special Note 🇳🇿</div>
+            <h3>Configure Before Use</h3>
+            <p style="margin-bottom:8px;">NZ fibre connections use VLAN tags on the WAN connection — routers don't work out of the box. You must configure this first.</p>
+            <p style="margin-bottom:8px;"><strong>Spark</strong> adds PPPoE on top — requires a username and password:</p>
+            <p style="font-family: var(--mono); font-size:12px; background:var(--panel2); padding:8px; border-radius:4px; color:var(--accent2);">user@spark.co.nz<br>password: password</p>
+            <p style="margin-top:8px; font-size:13px; color:var(--muted);">✅ Starlink is the exception — works normally out of the box.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: SWITCHES -->
+  <div class="slide" id="slide-5">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 04 — Network Devices</div>
+      <h2 class="slide-heading">The <span class="hl">Switch</span></h2>
+      <div class="grid-2">
+        <div>
+          <ul class="bullet-list">
+            <li>Splits a single cable into <strong>multiple ports</strong> — gives you more connections</li>
+            <li>Plug internet into <strong>any port</strong> (avoid ports labelled Console or MGMT)</li>
+            <li>Many switches include <strong>PoE</strong> capability to power devices</li>
+          </ul>
+          <div class="callout" style="margin-top:16px;">
+            <strong>Think of it as:</strong> A power board for your network — one cable in, many devices connected.
+          </div>
+        </div>
+        <div>
+          <div class="card blue" style="margin-bottom:12px;">
+            <div class="card-label">Type 1</div>
+            <h3>Unmanaged Switch</h3>
+            <p>Plug and play. No configuration required. Good for simple home or small installations where you just need more ports.</p>
+          </div>
+          <div class="card yellow">
+            <div class="card-label">Type 2</div>
+            <h3>Managed Switch</h3>
+            <p>Used in business/commercial installs. Allows you to separate traffic — e.g., keep guests off the camera network using VLANs. Requires configuration.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: ACCESS POINTS & POE -->
+  <div class="slide" id="slide-6">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 04 — Network Devices</div>
+      <h2 class="slide-heading">Access Points <span class="hl">&amp; PoE</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card green" style="margin-bottom:14px;">
+            <div class="card-label">Access Point (AP)</div>
+            <h3>Wireless Coverage</h3>
+            <ul>
+              <li>Provides WiFi to wireless devices</li>
+              <li>Continues to broadcast WiFi <strong>even without internet</strong> — you can still connect and configure it without a laptop cable</li>
+              <li>All Grandstream APs are <strong>PoE powered</strong> — via switch or injector</li>
+              <li><strong>Wired to router is always preferred.</strong> Wireless mesh is available but can cause issues</li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <div class="card blue">
+            <div class="card-label">PoE Injector</div>
+            <h3>Power Over Ethernet</h3>
+            <ul style="margin-bottom:10px;">
+              <li>One LAN input, one PoE output</li>
+              <li>Delivers <strong>power and data over a single cable</strong></li>
+              <li>Mostly AC powered — DC options exist</li>
+              <li>Great for troubleshooting — bypass the switch and inject PoE directly</li>
+            </ul>
+            <div style="background:var(--panel2); padding:10px; border-radius:4px; font-size:13px; color:#c9d1d9;">
+              <strong style="color:var(--accent2);">Wall power</strong> → PoE Injector → One cable → <strong style="color:var(--accent2);">Access Point</strong><br>
+              <span style="color:var(--muted);">↑ Power + Data in a single run</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: WIFI -->
+  <div class="slide" id="slide-7">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 05</div>
+      <h2 class="slide-heading">Wi-Fi <span class="hl">Standards &amp; Frequencies</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-label">WiFi Standards — Higher = Better</div>
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.8;">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:5px 0;"><span><strong style="color:var(--muted);">WiFi 5</strong> (ac)</span><span>Common, solid performance</span></div>
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:5px 0;"><span><strong style="color:var(--accent);">WiFi 6</strong> (ax)</span><span>Faster, more reliable, better security</span></div>
+              <div style="display:flex; justify-content:space-between; padding:5px 0;"><span><strong style="color:var(--accent2);">WiFi 7</strong> (be)</span><span style="color:var(--accent2);">Latest — highest speeds</span></div>
+            </div>
+          </div>
+          <div class="callout blue">
+            <strong>dBi (Signal Strength)</strong> is logarithmic — 9 dBi is 2× as powerful as 6 dBi. Directional antennas are always stronger than omnidirectional at the same dBi rating.
+          </div>
+        </div>
+        <div>
+          <div class="card-label" style="margin-bottom:10px; font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase;">Frequency Bands — Trade-offs</div>
+          <div class="freq-bar">
+            <div class="freq-label">2.4 GHz</div>
+            <div class="freq-track"><div class="freq-fill" style="width:90%; background:linear-gradient(90deg, #3fb950, #3fb950aa);"></div></div>
+            <div class="freq-note" style="color:var(--green);">Best range</div>
+          </div>
+          <div class="freq-bar">
+            <div class="freq-label">5 GHz</div>
+            <div class="freq-track"><div class="freq-fill" style="width:55%; background:linear-gradient(90deg, #f0a500, #f0a500aa);"></div></div>
+            <div class="freq-note" style="color:var(--accent);">Sweet spot</div>
+          </div>
+          <div class="freq-bar">
+            <div class="freq-label">6 GHz</div>
+            <div class="freq-track"><div class="freq-fill" style="width:25%; background:linear-gradient(90deg, #00b4d8, #00b4d8aa);"></div></div>
+            <div class="freq-note" style="color:var(--accent2);">Short range</div>
+          </div>
+          <p style="font-size:13px; color:var(--muted); margin-top:10px; line-height:1.5;">Higher frequency = faster speed + better reliability, but <em>less penetration</em> through walls and obstacles. Like light — red travels further than blue.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: NZ FIBRE -->
+  <div class="slide" id="slide-8" style="background: radial-gradient(ellipse at 30% 50%, rgba(0,50,160,0.12) 0%, transparent 60%), var(--bg);">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 06</div>
+      <h2 class="slide-heading">🇳🇿 NZ <span class="hl">Fibre Setup</span></h2>
+      <div class="grid-2">
+        <div>
+          <p class="slide-body" style="margin-bottom:16px;">New Zealand set up its fibre network differently to most of the world. This means routers <strong>do not work out of the box</strong> — you must configure them first.</p>
+          <ul class="bullet-list">
+            <li>NZ fibre uses <strong>VLAN tags</strong> on the WAN connection — must be set in the router</li>
+            <li><strong>Spark</strong> uses PPPoE — requires a username &amp; password in the router settings</li>
+            <li><strong>Starlink</strong> is the exception — works normally without extra configuration</li>
+          </ul>
+        </div>
+        <div>
+          <div class="card yellow">
+            <div class="card-label">Spark PPPoE Credentials</div>
+            <h3>Common Trap</h3>
+            <p style="margin-bottom:12px;">If the client is on Spark and the router isn't configured for PPPoE, you'll get no internet even with everything physically correct.</p>
+            <div style="font-family:var(--mono); font-size:13px; background:var(--panel2); padding:12px; border-radius:4px; line-height:2;">
+              <div><span style="color:var(--muted);">Username:</span> <span style="color:var(--accent2);">user@spark.co.nz</span></div>
+              <div><span style="color:var(--muted);">Password:</span> <span style="color:var(--accent2);">password</span></div>
+            </div>
+            <p style="margin-top:10px; font-size:12px; color:var(--muted);">Always check ISP and configure WAN settings before assuming there's a hardware fault.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: POINT TO POINT -->
+  <div class="slide" id="slide-9">
+    <div class="slide-inner">
+      <div class="slide-tag">Section 07</div>
+      <h2 class="slide-heading">Point to <span class="hl">Point</span> Links</h2>
+      <div class="grid-2">
+        <div>
+          <p class="slide-body" style="margin-bottom:14px;">An invisible wire through the air — can carry internet up to <strong>1–50km</strong> at high speeds. Think: sleep out 100m away that needs Netflix.</p>
+          <ul class="bullet-list">
+            <li>500 Mbps over 1km available from ~$200</li>
+            <li>Requires <strong>direct line of sight</strong> — think a rugby ball-shaped clear zone, not just a gap in trees</li>
+            <li>Faster speeds = thinner "rugby ball" = shorter effective distance</li>
+            <li>Lower frequencies (2.4 GHz) handle obstacles better than higher ones (60 GHz)</li>
+          </ul>
+        </div>
+        <div>
+          <div class="card red" style="margin-bottom:12px;">
+            <div class="card-label">⚠ Frequency vs Obstacles</div>
+            <h3>Choose Wisely</h3>
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.8;">
+              <div style="border-bottom:1px solid var(--border); padding:5px 0;"><strong style="color:var(--green);">2.4 GHz</strong> — handles obstacles, best for marginal LoS</div>
+              <div style="border-bottom:1px solid var(--border); padding:5px 0;"><strong style="color:var(--accent);">5 GHz</strong> — sweet spot for most P2P installs</div>
+              <div style="padding:5px 0;"><strong style="color:var(--danger);">60 GHz</strong> — killed by rain, oxygen, leaves. True clear LoS only</div>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Unofficial tip:</strong> You can sometimes get away with partial LoS — but it will hurt performance and distance significantly. When in doubt, choose a lower frequency and recommend a site survey first.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: SUMMARY -->
+  <div class="slide" id="slide-10">
+    <div class="slide-inner">
+      <div class="slide-tag">Wrap Up</div>
+      <h2 class="slide-heading">Key <span class="hl">Takeaways</span></h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-label">01</div>
+          <h3 style="color:var(--accent);">Physical First</h3>
+          <p>Always start troubleshooting at the physical layer. Cables cause most network problems. A link light ≠ a good cable.</p>
+        </div>
+        <div class="card blue">
+          <div class="card-label">02</div>
+          <h3>Same Subnet = Visible</h3>
+          <p>Devices on different subnets can't see each other without a router. Check this before assuming something is broken.</p>
+        </div>
+        <div class="card green">
+          <div class="card-label">03</div>
+          <h3>Simplify to Diagnose</h3>
+          <p>Remove as much hardware from the equation as possible. Plug directly into the router with a PoE injector to isolate the fault.</p>
+        </div>
+        <div class="card yellow">
+          <div class="card-label">04</div>
+          <h3>NZ Needs Config</h3>
+          <p>NZ routers don't work out of the box — VLAN tags required. Spark needs PPPoE credentials too.</p>
+        </div>
+        <div class="card" style="--accent:#00b4d8;">
+          <div class="card-label">05</div>
+          <h3 style="color:var(--accent2);">Frequency Trade-offs</h3>
+          <p>Higher frequency = faster but shorter range. 5 GHz is the sweet spot for most installs. 2.4 GHz for range or obstacles.</p>
+        </div>
+        <div class="card red">
+          <div class="card-label">06</div>
+          <h3>LoS for P2P</h3>
+          <p>Point-to-point links need true line of sight — not just a gap. Choose frequency based on obstacles and distance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: ADVANCED MODULE DIVIDER -->
+  <div class="slide" id="slide-11" style="background: radial-gradient(ellipse at 80% 20%, rgba(0,180,216,0.08) 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, rgba(240,165,0,0.06) 0%, transparent 50%), var(--bg);">
+    <div class="slide-inner">
+      <div class="title-eyebrow">Training Module 02 — Advanced</div>
+      <h1 class="divider-title">
+        Grandstream
+        <span class="line2" style="color: var(--accent2);">Networking Lab</span>
+      </h1>
+      <p class="subtitle">Hands-on, hardware-based labs. Build a real small-office network from scratch — WAN to firewall.</p>
+      <div class="topics">
+        <span class="badge blue">WAN Setup</span>
+        <span class="badge">LAN &amp; DHCP</span>
+        <span class="badge blue">VLANs</span>
+        <span class="badge">Switch Config</span>
+        <span class="badge blue">Staff &amp; Guest WiFi</span>
+        <span class="badge">User Accounts</span>
+        <span class="badge blue">Device Adoption</span>
+        <span class="badge">Firewall Rules</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: SCENARIO & EQUIPMENT -->
+  <div class="slide" id="slide-12">
+    <div class="slide-inner">
+      <div class="slide-tag">Grandstream Lab — Overview</div>
+      <h2 class="slide-heading">The <span class="hl">Scenario</span></h2>
+      <div class="grid-2">
+        <div>
+          <p class="slide-body" style="margin-bottom:16px;">You have been hired to deploy a network for a small accounting office called <strong>Acme Accounting</strong>.</p>
+          <ul class="bullet-list">
+            <li>8 staff members</li>
+            <li>Reception</li>
+            <li>Meeting room</li>
+            <li>Guest WiFi for visitors</li>
+            <li>Separate management network</li>
+            <li>Internet connection from an ISP</li>
+          </ul>
+        </div>
+        <div>
+          <div class="card blue">
+            <div class="card-label">Equipment Purchased</div>
+            <h3>Grandstream Hardware</h3>
+            <ul>
+              <li>1 × Grandstream Router</li>
+              <li>1 × Grandstream PoE Switch</li>
+              <li>1 × Grandstream Access Point</li>
+            </ul>
+          </div>
+          <div class="callout" style="margin-top:16px;">
+            <strong>Your job:</strong> Build the network from scratch — WAN, LAN, VLANs, WiFi, users, and firewall rules.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: NETWORK DIAGRAM -->
+  <div class="slide" id="slide-13">
+    <div class="slide-inner">
+      <div class="slide-tag">Grandstream Lab — Topology</div>
+      <h2 class="slide-heading">Network <span class="hl">Diagram</span></h2>
+      <div class="diagram">
+        <div class="diagram-node dim">Internet</div>
+        <div class="diagram-arrow">↓</div>
+        <div class="diagram-node">ISP Modem</div>
+        <div class="diagram-arrow">↓</div>
+        <div class="diagram-node accent">Grandstream Router</div>
+        <div class="diagram-arrow">↓</div>
+        <div class="diagram-node blue">Grandstream PoE Switch</div>
+        <div class="diagram-arrow">↓</div>
+        <div class="diagram-branch">
+          <div class="diagram-branch-col">
+            <div class="diagram-node">Access Point</div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-node dim">Staff + Guest WiFi</div>
+          </div>
+          <div class="diagram-branch-col">
+            <div class="diagram-node">Laptop</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout blue" style="margin-top:24px; max-width:600px; margin-left:auto; margin-right:auto;">
+        <strong>Flow:</strong> Internet enters through the ISP modem, into the router (WAN), out through the switch (LAN), which feeds both the Access Point and any wired devices like the management laptop.
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: LAB 1 - WAN CONFIGURATION -->
+  <div class="slide" id="slide-14">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 01</div>
+      <h2 class="slide-heading">WAN <span class="hl">Configuration</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="callout" style="margin-bottom:16px;">
+            <strong>Objective:</strong> Configure the router so it can access the Internet.
+          </div>
+          <div class="card-label" style="margin-bottom:10px;">Tasks</div>
+          <ol class="steps">
+            <li><p>Configure the WAN interface using <strong>DHCP</strong>.</p></li>
+            <li><p>Configure the WAN interface using a <strong>Static IP</strong>.</p></li>
+            <li><p>Configure the WAN interface using <strong>PPPoE</strong> <span style="color:var(--muted);">(optional)</span>.</p></li>
+          </ol>
+        </div>
+        <div>
+          <div class="card green" style="margin-bottom:14px;">
+            <div class="card-label">Verify</div>
+            <h3>Internet Reachable</h3>
+            <ul>
+              <li>Router has Internet</li>
+              <li>DNS works</li>
+              <li>Time sync works</li>
+            </ul>
+          </div>
+          <div class="card yellow">
+            <div class="card-label">Questions</div>
+            <h3>Check Your Work</h3>
+            <ul>
+              <li>What DNS servers are configured?</li>
+              <li>What gateway was assigned?</li>
+              <li>Can the router reach 8.8.8.8?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: LAB 2 - LAN CONFIGURATION -->
+  <div class="slide" id="slide-15">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 02</div>
+      <h2 class="slide-heading">LAN <span class="hl">Configuration</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="callout" style="margin-bottom:16px;">
+            <strong>Objective:</strong> Configure the internal network.
+          </div>
+          <div class="card">
+            <div class="card-label">Requirements</div>
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.7;">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--muted);">LAN Network</strong></span><span>192.168.10.0/24</span></div>
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">Router</strong></span><span>192.168.10.1</span></div>
+              <div style="display:flex; justify-content:space-between; padding:6px 0;"><span><strong style="color:var(--accent2);">DHCP Pool</strong></span><span>192.168.10.100 – 192.168.10.200</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>Connectivity</h3>
+            <ul>
+              <li>Laptop receives an address</li>
+              <li>Ping the router</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: LAB 3 - VLANS -->
+  <div class="slide" id="slide-16">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 03</div>
+      <h2 class="slide-heading">VLANs</h2>
+      <div class="grid-2">
+        <div>
+          <div class="callout" style="margin-bottom:16px;">
+            <strong>Objective:</strong> Separate traffic into logical networks.
+          </div>
+          <div class="card">
+            <div class="card-label">VLANs to Create</div>
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.7;">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">VLAN 10</strong> Staff</span><span>192.168.10.0/24</span></div>
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent2);">VLAN 20</strong> Guest</span><span>192.168.20.0/24</span></div>
+              <div style="display:flex; justify-content:space-between; padding:6px 0;"><span><strong style="color:var(--green);">VLAN 30</strong> Management</span><span>192.168.30.0/24</span></div>
+            </div>
+          </div>
+          <div class="card-label" style="margin-top:16px; margin-bottom:8px;">Configure</div>
+          <ul class="bullet-list">
+            <li>Router interfaces</li>
+            <li>DHCP scopes</li>
+            <li>Switch VLANs</li>
+            <li>Trunk to AP</li>
+            <li>Access port for management PC</li>
+          </ul>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>Correct VLAN Assignment</h3>
+            <ul>
+              <li>Staff devices receive VLAN 10</li>
+              <li>Guest devices receive VLAN 20</li>
+              <li>Management PC receives VLAN 30</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: LAB 4 - SWITCH CONFIGURATION -->
+  <div class="slide" id="slide-17">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 04</div>
+      <h2 class="slide-heading">Switch <span class="hl">Configuration</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card-label" style="margin-bottom:10px;">Port Configuration</div>
+          <div class="card">
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.8;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">Port 1</strong></span><span>Router uplink — <span class="badge" style="margin:0;">Tagged</span></span></div>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">Port 2</strong></span><span>Access Point — <span class="badge" style="margin:0;">Tagged</span></span></div>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--green);">Port 3</strong></span><span>Management PC — <span class="badge green" style="margin:0;">Untagged VLAN 30</span></span></div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0;"><span><strong style="color:var(--accent2);">Port 4</strong></span><span>Staff PC — <span class="badge blue" style="margin:0;">Untagged VLAN 10</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>IP Assignment</h3>
+            <p>Devices receive correct IP addresses for their assigned VLAN.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: LAB 5 - STAFF WIFI -->
+  <div class="slide" id="slide-18">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 05</div>
+      <h2 class="slide-heading">Staff <span class="hl">WiFi</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="callout" style="margin-bottom:16px;">
+            <strong>Objective:</strong> Deploy wireless networking.
+          </div>
+          <div class="card yellow">
+            <div class="card-label">Create SSID</div>
+            <h3>Acme Staff</h3>
+            <ul>
+              <li>WPA2/WPA3 security</li>
+              <li>Strong password</li>
+              <li>Bridge to VLAN 10</li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>Wireless Connectivity</h3>
+            <ul>
+              <li>Laptop connects</li>
+              <li>Receives VLAN 10 address</li>
+              <li>Internet works</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: LAB 6 - GUEST WIFI -->
+  <div class="slide" id="slide-19">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 06</div>
+      <h2 class="slide-heading">Guest <span class="hl">WiFi</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card yellow" style="margin-bottom:14px;">
+            <div class="card-label">Create SSID</div>
+            <h3>Acme Guest</h3>
+            <ul>
+              <li>VLAN 20</li>
+              <li>Client isolation enabled</li>
+              <li>Internet only — guests cannot access the staff network</li>
+            </ul>
+          </div>
+          <div class="callout blue">
+            <strong>Optional:</strong> Bandwidth limit, captive portal, access schedule.
+          </div>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>Isolation Works</h3>
+            <ul>
+              <li>Guest receives 192.168.20.x</li>
+              <li>Cannot ping 192.168.10.1</li>
+              <li>Can browse Internet</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: LAB 7 - USER ACCOUNTS -->
+  <div class="slide" id="slide-20">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 07</div>
+      <h2 class="slide-heading">User <span class="hl">Accounts</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card-label" style="margin-bottom:10px;">Create Users</div>
+          <div class="card">
+            <div style="font-size:13px; color:#c9d1d9; line-height:1.8;">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent);">Admin</strong></span><span>Administrator</span></div>
+              <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:6px 0;"><span><strong style="color:var(--accent2);">Helpdesk</strong></span><span>Limited Admin</span></div>
+              <div style="display:flex; justify-content:space-between; padding:6px 0;"><span><strong style="color:var(--green);">Reception</strong></span><span>Viewer</span></div>
+            </div>
+          </div>
+          <p class="slide-body" style="margin-top:14px;">Configure permissions to match each role.</p>
+        </div>
+        <div>
+          <div class="card green">
+            <div class="card-label">Verify</div>
+            <h3>Role-Based Access</h3>
+            <p>Each user only has access appropriate to their role.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 21: LAB 8 - DEVICE ADOPTION -->
+  <div class="slide" id="slide-21">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 08</div>
+      <h2 class="slide-heading">Device <span class="hl">Adoption</span></h2>
+      <div class="grid-2">
+        <div>
+          <ol class="steps">
+            <li><p>Factory reset the AP.</p></li>
+            <li><p>Adopt it into the controller.</p></li>
+            <li><p>Upgrade firmware.</p></li>
+            <li><p>Rename it — <strong>Reception AP</strong>.</p></li>
+            <li><p>Assign its location.</p></li>
+          </ol>
+        </div>
+        <div>
+          <div class="callout blue">
+            <strong>Tip:</strong> Adoption is where the AP hands control to the controller — expect a brief reboot once it joins.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 22: LAB 9 - FIREWALL RULES -->
+  <div class="slide" id="slide-22">
+    <div class="slide-inner">
+      <div class="slide-tag">Lab 09</div>
+      <h2 class="slide-heading">Firewall <span class="hl">Rules</span></h2>
+      <div class="grid-2">
+        <div>
+          <div class="card red" style="margin-bottom:14px;">
+            <div class="card-label">Guest VLAN</div>
+            <h3>Restricted</h3>
+            <ul>
+              <li>Cannot access 192.168.10.0/24</li>
+              <li>Cannot access 192.168.30.0/24</li>
+              <li>Can access Internet</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <div class="card-label">Management VLAN</div>
+            <h3>Full Access</h3>
+            <p>Can access everything.</p>
+          </div>
+        </div>
+        <div>
+          <div class="card yellow">
+            <div class="card-label">Verify</div>
+            <h3>Rules Enforced</h3>
+            <ul>
+              <li>Staff can reach the printer</li>
+              <li>Guest cannot ping router management</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 23: ADVANCED MODULE SUMMARY -->
+  <div class="slide" id="slide-23">
+    <div class="slide-inner">
+      <div class="slide-tag">Wrap Up — Advanced Module</div>
+      <h2 class="slide-heading">Lab Series <span class="hl">Complete</span></h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-label">01–02</div>
+          <h3 style="color:var(--accent);">WAN &amp; LAN</h3>
+          <p>Router gets Internet via DHCP, Static, or PPPoE. Internal LAN and DHCP pool serve local devices.</p>
+        </div>
+        <div class="card blue">
+          <div class="card-label">03–04</div>
+          <h3>VLANs &amp; Switching</h3>
+          <p>Traffic separated into Staff, Guest, and Management VLANs, carried across tagged trunks and untagged access ports.</p>
+        </div>
+        <div class="card green">
+          <div class="card-label">05–06</div>
+          <h3>WiFi &amp; Guest Access</h3>
+          <p>Staff SSID bridges to VLAN 10. Guest SSID is isolated, internet-only, and can't reach internal networks.</p>
+        </div>
+        <div class="card yellow">
+          <div class="card-label">07</div>
+          <h3>User Accounts</h3>
+          <p>Role-based permissions — Administrator, Limited Admin, and Viewer — keep access appropriate to the job.</p>
+        </div>
+        <div class="card" style="--accent:#00b4d8;">
+          <div class="card-label">08</div>
+          <h3 style="color:var(--accent2);">Device Adoption</h3>
+          <p>Reset, adopt, update, rename, and locate — the standard onboarding flow for any new AP.</p>
+        </div>
+        <div class="card red">
+          <div class="card-label">09</div>
+          <h3>Firewall Rules</h3>
+          <p>Guest is boxed in to Internet-only. Management sees everything. Staff reach what they need — nothing more.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end stage -->
+
+<!-- NAV BAR -->
+<div id="nav">
+  <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" disabled>← Prev</button>
+  <div id="slide-title-display">Introduction</div>
+  <button class="nav-btn primary" id="nextBtn" onclick="navigate(1)">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const titles = [
+    'Introduction',
+    'Ethernet Cables & CAT Ratings',
+    'Troubleshooting Approach',
+    'IP Addresses & Subnets',
+    'The Router',
+    'Switches',
+    'Access Points & PoE Injectors',
+    'WiFi Standards & Frequencies',
+    'NZ Fibre Setup',
+    'Point to Point Links',
+    'Key Takeaways',
+    'Grandstream Networking Lab',
+    'Lab Overview — Scenario & Equipment',
+    'Network Diagram',
+    'Lab 1 — WAN Configuration',
+    'Lab 2 — LAN Configuration',
+    'Lab 3 — VLANs',
+    'Lab 4 — Switch Configuration',
+    'Lab 5 — Staff WiFi',
+    'Lab 6 — Guest WiFi',
+    'Lab 7 — User Accounts',
+    'Lab 8 — Device Adoption',
+    'Lab 9 — Firewall Rules',
+    'Advanced Module — Key Takeaways'
+  ];
+  let current = 0;
+  const total = slides.length;
+
+  // Build progress dots
+  const track = document.getElementById('progress-track');
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'prog-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goTo(i));
+    track.appendChild(dot);
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current - (index > current ? 0 : 0)].classList.remove('exit'), 350);
+
+    const prevIdx = current;
+    current = index;
+
+    setTimeout(() => slides[prevIdx].classList.remove('exit'), 400);
+
+    slides[current].classList.add('active');
+
+    // Update progress
+    document.querySelectorAll('.prog-dot').forEach((d, i) => {
+      d.className = 'prog-dot' + (i === current ? ' active' : i < current ? ' done' : '');
+    });
+
+    document.getElementById('slide-counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('slide-title-display').textContent = titles[current];
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+  }
+
+  function navigate(dir) { goTo(current + dir); }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+  });
+
+  // Init display
+  document.getElementById('slide-title-display').textContent = titles[0];
+  document.getElementById('slide-counter').textContent = `1 / ${total}`;
+</script>
+</body>
+</html>
